@@ -1,30 +1,23 @@
-"use client";
-
-import React, { useState } from "react";
-import { Check, Edit2, AlertCircle, Book, Bookmark } from "lucide-react";
+import React from "react";
+import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import QuestionCard from "./QuestionCard";
-import { Eye, EyeOff } from "lucide-react";
-import { ChevronDown, Plus } from "lucide-react";
-// Types specific to this component
-type Question = {
-  id: string;
-  question: string;
-  answer: string | null;
-  isSolved: boolean;
-};
 
 interface DrawerProps {
   activeDrawer: string | null;
   onToggle: (tab: string) => void;
-  questions: Question[];
+  questions: any[];
+
+  // Strict Types
   onSaveAnswer: (
     id: string,
     newQuestion: string,
     newAnswer: string
   ) => Promise<void>;
+
+  onAddIndependentQuestion: () => void; // <--- The new feature
+  onDeleteQuestion: (id: string) => void;
   showHighlights: boolean;
   onToggleHighlights: () => void;
-  onDeleteQuestion: (id: string) => void;
 }
 
 export default function Drawer({
@@ -32,93 +25,116 @@ export default function Drawer({
   onToggle,
   questions,
   onSaveAnswer,
+  onAddIndependentQuestion,
+  onDeleteQuestion,
   showHighlights,
   onToggleHighlights,
-  onDeleteQuestion,
 }: DrawerProps) {
-  // Local state for the "Answer Editor" (doesn't need to be global)
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [tempAnswer, setTempAnswer] = useState("");
+  // 1. FIX: REMOVED the "if (!activeDrawer) return null" check.
+  // The Drawer must always exist so you can see the handle to open it.
 
-  const unsolvedCount = questions.filter((q) => !q.isSolved).length;
+  const isOpen = activeDrawer === "questions";
 
   return (
     <div
-      className={`border-t border-stone-200 bg-white flex flex-col transition-all duration-300 ease-in-out shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]`}
-      style={{ height: activeDrawer ? "40%" : "40px" }}
+      className={`
+        fixed bottom-0 right-0 bg-stone-50 border-t border-l border-stone-200 shadow-xl transition-all duration-300 ease-in-out z-50
+        ${
+          isOpen ? "h-96 w-96" : "h-12 w-48"
+        } /* 2. FIX: Height/Width changes on toggle, never vanishes */
+      `}
     >
-      {/* 1. HEADER STRIP */}
-      <div className="flex items-center h-[40px] bg-[#EBE9DE] px-4 justify-between shrink-0">
-        <div className="flex gap-4 h-full pt-1">
-          {/* THE QUESTIONS TAB */}
-          <div
-            // FIX 1: Allow closing! If it's already "questions", clicking sends null (close).
-            // If it's something else, it opens "questions".
-            onClick={() => onToggle("questions")}
-            className={`flex items-center gap-3 px-4 rounded-t-lg text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer select-none ${
-              activeDrawer === "questions"
-                ? "bg-white text-stone-900 border-t border-x border-stone-200"
-                : "bg-[#EBE9DE] text-stone-500 hover:bg-[#E0DECF]"
+      {/* HEADER: ALWAYS VISIBLE */}
+      <div
+        className="flex items-center justify-between px-4 h-12 border-b border-stone-200 bg-white cursor-pointer hover:bg-stone-50 transition-colors"
+        onClick={() => onToggle("questions")} // Clicking header toggles it
+      >
+        <div className="flex items-center gap-2">
+          {/* 3. FIX: RESTORED UPPERCASE & BOLD styling */}
+          <h2 className="font-serif font-bold text-sm tracking-widest text-stone-800 uppercase">
+            Questions
+          </h2>
+
+          {/* 4. FIX: RESTORED RED BADGE */}
+          <span
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+              questions.length > 0
+                ? "bg-red-500 text-white"
+                : "bg-stone-200 text-stone-500"
             }`}
           >
-            <span>Questions</span>
+            {questions.length}
+          </span>
 
-            {/* FIX 2: Only show badge if there are UNSOLVED questions */}
-            {questions.filter((q) => !q.isSolved).length > 0 && (
-              <span className="bg-red-500 text-white text-[9px] px-1.5 rounded-full">
-                {questions.filter((q) => !q.isSolved).length}
-              </span>
-            )}
-
-            {/* THE EYE TOGGLE */}
-            {activeDrawer === "questions" && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation(); // Keep this! Prevents the tab from closing when clicking the eye.
-                  onToggleHighlights();
-                }}
-                className="hover:bg-stone-100 p-1 rounded-md text-stone-400 hover:text-stone-700 transition-colors ml-1"
-                title={showHighlights ? "Hide underlines" : "Show underlines"}
-              >
-                {showHighlights ? <Eye size={14} /> : <EyeOff size={14} />}
-              </button>
-            )}
-          </div>
+          {/* THE "+" BUTTON (Visible only when open to save space, or always if you prefer) */}
+          {isOpen && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Don't close drawer when clicking +
+                onAddIndependentQuestion();
+              }}
+              className="ml-1 p-0.5 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-800 hover:text-white transition-all"
+              title="Add Independent Question"
+            >
+              <Plus size={14} />
+            </button>
+          )}
         </div>
 
-        {/* RIGHT SIDE ICONS */}
-        <div className="flex gap-2 text-stone-400">
-          <button className="hover:text-stone-700">
-            <AlertCircle size={16} />
-          </button>
-          <button className="hover:text-stone-700">
-            <Book size={16} />
-          </button>
+        {/* Right Controls */}
+        <div className="flex gap-1 items-center">
+          {isOpen && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleHighlights();
+              }}
+              className={`p-1 rounded-md transition-colors mr-1 ${
+                showHighlights
+                  ? "bg-stone-200 text-stone-700"
+                  : "text-stone-300 hover:bg-stone-100"
+              }`}
+              title={showHighlights ? "Hide Highlights" : "Show Highlights"}
+            >
+              <div
+                className={`w-3 h-3 rounded-full border-2 ${
+                  showHighlights ? "border-current" : "border-stone-300"
+                }`}
+              />
+            </button>
+          )}
+
+          {/* Toggle Icon */}
+          <div className="text-stone-400">
+            {isOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          </div>
         </div>
       </div>
 
-      {/* 2. CONTENT AREA (Clean List) */}
-      {activeDrawer === "questions" && (
-        <div className="flex-1 overflow-y-auto bg-white">
-          <div className="max-w-4xl mx-auto w-full pt-8 px-12 pb-12">
-            <div className="space-y-4">
-              {questions.length === 0 ? (
-                <div className="text-center text-stone-400 text-sm py-10 italic">
-                  No questions yet. Highlight text to create one.
-                </div>
-              ) : (
-                questions.map((q: any, i: number) => (
-                  <QuestionCard
-                    key={q.id}
-                    question={q}
-                    index={i}
-                    onSave={onSaveAnswer}
-                    onDelete={onDeleteQuestion}
-                  />
-                ))
-              )}
+      {/* CONTENT AREA: Only visible when Open */}
+      {isOpen && (
+        <div className="h-[calc(100%-3rem)] overflow-y-auto p-4 space-y-4 bg-stone-50">
+          {questions.length === 0 ? (
+            <div className="text-center mt-10 text-stone-400">
+              <p className="text-xs italic">No questions yet.</p>
+              <button
+                onClick={onAddIndependentQuestion}
+                className="mt-2 text-xs underline hover:text-stone-600"
+              >
+                Add one?
+              </button>
             </div>
-          </div>
+          ) : (
+            questions.map((q, i) => (
+              <QuestionCard
+                key={q.id}
+                question={q}
+                index={i}
+                onSave={onSaveAnswer}
+                onDelete={onDeleteQuestion}
+              />
+            ))
+          )}
         </div>
       )}
     </div>

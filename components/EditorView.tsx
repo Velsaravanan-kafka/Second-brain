@@ -359,7 +359,7 @@ export default function EditorView({
           showHighlights={showHighlights}
           onToggleHighlights={() => setShowHighlights(!showHighlights)}
           onDeleteQuestion={handleDeleteQuestion}
-          //onAddIndependentQuestion={() => handleAddQuestion("NEW QUESTION")}
+          onAddIndependentQuestion={() => handleAddQuestion("NEW QUESTION")}
         />
       </main>
     </div>
