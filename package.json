@@ -6,24 +6,29 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint"
   },
   "dependencies": {
-    "@tiptap/core": "^3.13.0",
-    "@tiptap/react": "^3.13.0",
-    "@tiptap/starter-kit": "^3.13.0",
-    "next": "16.0.7",
-    "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "@prisma/client": "^5.10.0",
+    "@tiptap/extension-bubble-menu": "^2.2.4",
+    "@tiptap/pm": "^2.2.4",
+    "@tiptap/react": "^2.2.4",
+    "@tiptap/starter-kit": "^2.2.4",
+    "lucide-react": "^0.344.0",
+    "next": "14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.7",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.23",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.1.0",
+    "postcss": "^8.5.6",
+    "prisma": "^5.10.0",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.3.3"
   }
 }

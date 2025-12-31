@@ -1,15 +1,52 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ... keep your other styles below ... */
+
+/* When the 'hide-highlights' class is active, remove borders */
+.hide-highlights .question-highlight {
+  border-bottom-width: 0px !important;
+  background-color: transparent !important;
+}
+
+/* --- QUESTION HIGHLIGHT STYLES --- */
+
+/* 1. Base Style (The Red/Green Line) */
+.question-highlight {
+  border-bottom-width: 2px !important;
+  border-bottom-style: dashed !important;
+  padding-bottom: 1px;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+/* 2. Unsolved (Red) */
+.question-highlight:not([class*="border-green"]) {
+  border-color: #f87171 !important; /* Red-400 */
+}
+.question-highlight:not([class*="border-green"]):hover {
+  background-color: #fef2f2; /* Red-50 */
+}
+
+/* 3. Solved (Green) - Tiptap adds the class, we ensure it sticks */
+.question-highlight.border-green-500 {
+  border-color: #22c55e !important; /* Green-500 */
+}
+.question-highlight.border-green-500:hover {
+  background-color: #f0fdf4; /* Green-50 */
+}
+
+/* 4. HIDDEN STATE (When Eye is Off) */
+.hide-highlights .question-highlight {
+  border-bottom-color: transparent !important;
+  background-color: transparent !important;
+  cursor: text;
+}
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
