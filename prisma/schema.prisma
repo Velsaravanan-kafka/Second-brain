@@ -14,6 +14,7 @@ model Node {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   icon        String?
+  userId      String   @default("legacy_user")
   parentId  String?  
   parent    Node?    @relation("NodeToChildren", fields: [parentId], references: [id])
   children  Node[]   @relation("NodeToChildren")

@@ -3,4 +3,5 @@ export type Node = {
   title: string;
   children: Node[];
   content?: string;
+  icon?: string | null;
 };

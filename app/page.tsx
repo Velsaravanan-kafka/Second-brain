@@ -5,6 +5,7 @@ import { Node } from "@/types";
 import { buildTree, PrismaNode } from "@/lib/utils";
 import DashboardView from "@/components/DashboardView";
 import EditorView from "@/components/EditorView";
+import { AVAILABLE_ICONS, getIconComponent } from "@/lib/iconMap";
 
 // --- Helper: Generate simple ID ---
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -37,22 +38,27 @@ export default function PageController() {
     setView("editor");
   };
 
-  const handleAddSubject = async () => {
-    const title = prompt("Enter Subject Name (e.g. Brain, Journal):");
-    if (!title) return;
-    await handleAddNode("root", title);
-  };
+  // app/page.tsx
 
-  const handleAddNode = async (parentId: string, customTitle?: string) => {
+  // 1. Update signature to accept 'icon'
+  const handleAddNode = async (
+    parentId: string,
+    customTitle?: string,
+    icon?: string
+  ) => {
     const title = customTitle || "New Note";
+
+    // 2. Optimistic Update Object
     const newNode: Node = {
       id: generateId(),
       title,
       children: [],
       content: "",
+      icon: icon || "brain", // <--- Save icon locally for instant feedback
+      // @ts-ignore (If your type definition is strict, ignore this or update types/index.tsx)
     };
 
-    // 1. Optimistic Update
+    // 3. Helper for recursion (Keep your existing one, it's fine)
     const updateRecursive = (nodes: Node[]): Node[] => {
       return nodes.map((n) => {
         if (n.id === parentId)
@@ -67,16 +73,17 @@ export default function PageController() {
       parentId === "root" ? [...prev, newNode] : updateRecursive(prev)
     );
 
-    // 2. Save to DB & Refresh
+    // 4. API Call with Icon
     await fetch("/api/nodes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         parentId: parentId === "root" ? null : parentId,
+        icon: icon || "brain", // <--- Send icon to DB
       }),
     });
-    fetchNotes(); // Re-fetch to get real IDs
+    fetchNotes();
   };
   // Add this near your other handlers
   // CORRECTED: Update TreeData instead of ActiveNode
@@ -147,7 +154,7 @@ export default function PageController() {
       <DashboardView
         nodes={treeData}
         onEnter={handleEnterSubject}
-        onAddSubject={handleAddSubject}
+        onAddNode={handleAddNode}
         onDelete={handleDelete}
       />
     );

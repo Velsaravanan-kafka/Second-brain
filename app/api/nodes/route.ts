@@ -18,12 +18,13 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, parentId } = body;
+    const { title, parentId, icon } = body;
 
     const newNode = await prisma.node.create({
       data: {
         title: title || "Untitled Note",
         parentId: parentId || null,
+        icon: icon || null,
         content: "",
       },
     });

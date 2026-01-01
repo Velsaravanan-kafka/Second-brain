@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.36.5",
     "@prisma/client": "^5.10.0",
     "@tiptap/extension-bubble-menu": "^2.2.4",
     "@tiptap/pm": "^2.2.4",

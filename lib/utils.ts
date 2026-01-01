@@ -9,6 +9,7 @@ export type PrismaNode = {
   parentId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  icon: string | null;
 };
 
 // --- THE TRANSFORMER ---
@@ -25,6 +26,7 @@ export function buildTree(flatNodes: PrismaNode[]): Node[] {
       title: dbNode.title,
       children: [], // Start empty
       content: dbNode.content || "",
+      icon: dbNode.icon,
     });
   });
 
