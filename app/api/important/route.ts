@@ -42,3 +42,4 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ success: true });
 }
+export const dynamic = "force-dynamic";
