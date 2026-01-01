@@ -8,9 +8,16 @@ import { ChevronLeft } from "lucide-react";
 import SidebarItem from "@/components/sidebarItem";
 import { Node } from "@/types";
 import Drawer from "@/components/Drawer";
-import EditorBubbleMenu from "@/components/EditorBubbleMenu";
+import { EditorBubbleMenu } from "@/components/EditorBubbleMenu";
 import BubbleMenuExtension from "@tiptap/extension-bubble-menu";
 import { QuestionMark } from "./Extensions/QuestionMark";
+import { ImportantMark } from "./Extensions/ImportantMark";
+import { VocabularyMark } from "./Extensions/VocabularyMark";
+import {
+  // ... existing imports ...
+  AlertCircle,
+  Book,
+} from "lucide-react";
 
 interface EditorViewProps {
   rootNode: Node;
@@ -37,44 +44,74 @@ export default function EditorView({
 
   const [activeNode, setActiveNode] = useState<Node | null>(rootNode);
   const [activeDrawer, setActiveDrawer] = useState<string | null>(null);
+  const [importantList, setImportantList] = useState<any[]>([]);
+  const [vocabList, setVocabList] = useState<any[]>([]);
 
   // Stores the list of questions for the current note
   const [questions, setQuestions] = useState<any[]>([]);
 
   useEffect(() => {
-    // Only fetch if we have a note selected AND the questions tab is open
-    if (activeNode && activeDrawer === "questions") {
+    if (activeNode?.id) {
+      // Fetch Questions (Existing)
       fetch(`/api/questions?nodeId=${activeNode.id}`)
         .then((res) => res.json())
         .then((data) => setQuestions(data));
+
+      // Fetch Important (New)
+      fetch(`/api/important?nodeId=${activeNode.id}`)
+        .then((res) => res.json())
+        .then((data) => setImportantList(data));
+
+      // Fetch Vocabulary (New)
+      fetch(`/api/vocabulary?nodeId=${activeNode.id}`)
+        .then((res) => res.json())
+        .then((data) => setVocabList(data));
     }
-  }, [activeNode, activeDrawer]);
+  }, [activeNode?.id]);
 
   // --- Tiptap Setup ---
   const editor = useEditor({
     extensions: [
       StarterKit,
-      BubbleMenu.configure({
-        pluginKey: "bubbleMenu", // Important for stability
-      }),
+      BubbleMenu.configure({ pluginKey: "bubbleMenu" }),
       QuestionMark,
+      ImportantMark, // <--- Register
+      VocabularyMark, // <--- Register
     ],
-
     content: activeNode?.content || "",
     editorProps: {
       attributes: {
         class: "prose prose-stone focus:outline-none max-w-none min-h-[50vh]",
       },
-    },
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
+      handleClick: (view, pos, event) => {
+        const { state } = view;
+        const marks = state.doc.resolve(pos).marks();
 
-      // If we have a note selected, send the new text up to be saved
-      if (activeNode) {
-        onUpdateContent(html, activeNode.id);
-      }
+        // CHECK 1: Question?
+        const qMark = marks.find((m) => m.type.name === "questionMark");
+        if (qMark && qMark.attrs.id) {
+          handleMarkClick("questions", qMark.attrs.id);
+          return true;
+        }
+
+        // CHECK 2: Important?
+        const impMark = marks.find((m) => m.type.name === "importantMark");
+        if (impMark && impMark.attrs.id) {
+          handleMarkClick("important", impMark.attrs.id);
+          return true;
+        }
+
+        // CHECK 3: Vocabulary?
+        const vocabMark = marks.find((m) => m.type.name === "vocabularyMark");
+        if (vocabMark && vocabMark.attrs.id) {
+          handleMarkClick("dictionary", vocabMark.attrs.id); // 'dictionary' is the tab name
+          return true;
+        }
+
+        return false;
+      },
     },
-    immediatelyRender: false,
+    // ... onUpdate, etc ...
   });
 
   // Sync Editor Content when switching notes
@@ -156,6 +193,80 @@ export default function EditorView({
     });
   };
 
+  // HELPER: Handles clicking a Red Line in the text
+  // UNIFIED CLICK HANDLER
+  const handleMarkClick = (
+    type: "questions" | "important" | "dictionary",
+    id: string
+  ) => {
+    // 1. Open the correct drawer tab
+    setActiveDrawer(type);
+
+    // 2. Find the card (We will use prefixes: 'q-', 'imp-', 'vocab-')
+    setTimeout(() => {
+      // Determine the ID prefix based on type
+      let prefix = "question-card-";
+      if (type === "important") prefix = "important-card-";
+      if (type === "dictionary") prefix = "vocab-card-";
+
+      const card = document.getElementById(`${prefix}${id}`);
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.classList.add("ring-2", "ring-stone-800");
+        setTimeout(
+          () => card.classList.remove("ring-2", "ring-stone-800"),
+          2000
+        );
+      }
+    }, 100);
+  };
+  // --- HANDLE IMPORTANT (Amber) ---
+  const handleAddImportant = async () => {
+    const { from, to, empty } = editor?.state.selection || {};
+    if (empty || !editor) return;
+
+    const realId = crypto.randomUUID();
+    const text = editor.state.doc.textBetween(from!, to!, " ");
+
+    // 1. Paint it Amber
+    editor.chain().focus().setMark("importantMark", { id: realId }).run();
+    if (activeNode) onUpdateContent(editor.getHTML(), activeNode.id);
+
+    // 2. Optimistic Update
+    const newItem = { id: realId, text, nodeId: activeNode?.id };
+    setImportantList((prev) => [newItem, ...prev]);
+    setActiveDrawer("important");
+
+    // 3. Save to DB
+    await fetch("/api/important", {
+      method: "POST",
+      body: JSON.stringify(newItem),
+    });
+  };
+
+  // --- HANDLE VOCABULARY (Blue) ---
+  const handleAddVocabulary = async () => {
+    const { from, to, empty } = editor?.state.selection || {};
+    if (empty || !editor) return;
+
+    const realId = crypto.randomUUID();
+    const text = editor.state.doc.textBetween(from!, to!, " ");
+
+    // 1. Paint it Blue
+    editor.chain().focus().setMark("vocabularyMark", { id: realId }).run();
+    if (activeNode) onUpdateContent(editor.getHTML(), activeNode.id);
+
+    // 2. Optimistic Update
+    const newItem = { id: realId, text, nodeId: activeNode?.id };
+    setVocabList((prev) => [newItem, ...prev]);
+    setActiveDrawer("dictionary");
+
+    // 3. Save to DB
+    await fetch("/api/vocabulary", {
+      method: "POST",
+      body: JSON.stringify(newItem),
+    });
+  };
   // MODIFIED: Accepts optional string.
   // If string is present -> Creates Independent Question.
   // If string is missing -> Creates Linked Question from Selection.
@@ -331,6 +442,8 @@ export default function EditorView({
                 <EditorBubbleMenu
                   editor={editor}
                   onAddQuestion={handleAddQuestion}
+                  onAddImportant={handleAddImportant}
+                  onAddVocabulary={handleAddVocabulary}
                 />
 
                 <div
@@ -349,12 +462,36 @@ export default function EditorView({
           </div>
         </div>
         {/* B. BOTTOM DRAWER (Clean Component) */}
+        {/* B. BOTTOM DRAWER */}
         <Drawer
           activeDrawer={activeDrawer}
           onToggle={(tab) =>
             setActiveDrawer((prev) => (prev === tab ? null : tab))
           }
           questions={questions}
+          // 👇 ADD THESE 4 NEW PROPS 👇
+          importantList={importantList}
+          vocabList={vocabList}
+          onDeleteImportant={async (id) => {
+            // 1. Optimistic Update (Remove from UI immediately)
+            setImportantList((prev) => prev.filter((item) => item.id !== id));
+            // 2. Database Update
+            await fetch("/api/important", {
+              method: "DELETE",
+              body: JSON.stringify({ id }),
+            });
+          }}
+          onDeleteVocab={async (id) => {
+            // 1. Optimistic Update
+            setVocabList((prev) => prev.filter((item) => item.id !== id));
+            // 2. Database Update
+            await fetch("/api/vocabulary", {
+              method: "DELETE",
+              body: JSON.stringify({ id }),
+            });
+          }}
+          // 👆 END NEW PROPS 👆
+
           onSaveAnswer={handleUpdateQuestion}
           showHighlights={showHighlights}
           onToggleHighlights={() => setShowHighlights(!showHighlights)}

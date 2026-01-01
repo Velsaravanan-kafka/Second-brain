@@ -33,7 +33,10 @@ export default function QuestionCard({
   };
 
   return (
-    <div className="bg-white p-3 rounded-lg shadow-sm border border-stone-200 mb-3 hover:shadow-md transition-shadow group">
+    <div
+      id={`question-card-${question.id}`}
+      className="bg-white p-3 rounded-lg shadow-sm border border-stone-200 mb-3 hover:shadow-md transition-shadow group"
+    >
       {/* HEADER: Dynamic Input or Text */}
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1 mr-2">

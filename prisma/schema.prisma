@@ -13,10 +13,13 @@ model Node {
   content   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  icon        String?
   parentId  String?  
   parent    Node?    @relation("NodeToChildren", fields: [parentId], references: [id])
   children  Node[]   @relation("NodeToChildren")
   questions Question[]
+  importants   Important[]
+  vocabularies Vocabulary[]
 }
 
 model Question {
@@ -27,5 +30,27 @@ model Question {
   createdAt DateTime @default(now())
   
   nodeId    String
+  node      Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+// 1. For Amber Highlights (Important)
+model Important {
+  id        String   @id // We will generate this on the client (crypto.randomUUID)
+  text      String   // The text you highlighted
+  nodeId    String   // Which note does this belong to?
+  createdAt DateTime @default(now())
+
+  // Link to the Note (Node)
+  node      Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+// 2. For Blue Highlights (Vocabulary)
+model Vocabulary {
+  id        String   @id 
+  text      String   // The word you selected
+  definition String? // Optional: Future-proofing if you want to add meanings later
+  nodeId    String   
+  createdAt DateTime @default(now())
+
   node      Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 }

@@ -1,55 +1,118 @@
-"use client";
-
+// components/EditorBubbleMenu.tsx
 import React from "react";
-import { BubbleMenu } from "@tiptap/react";
-import { Editor } from "@tiptap/react";
+import {
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Code,
+  AlertCircle, // <--- NEW ICON
+  Book, // <--- NEW ICON
+} from "lucide-react";
+import { BubbleMenu, BubbleMenuProps } from "@tiptap/react";
 
-import { HelpCircle, Bold, Italic } from "lucide-react";
-
-interface EditorBubbleMenuProps {
-  editor: Editor | null;
+// 1. UPDATE INTERFACE
+interface EditorBubbleMenuProps extends Omit<BubbleMenuProps, "children"> {
+  editor: any;
   onAddQuestion: () => void;
+  onAddImportant: () => void; // <--- NEW PROP
+  onAddVocabulary: () => void; // <--- NEW PROP
 }
 
-export default function EditorBubbleMenu({
+export const EditorBubbleMenu = ({
   editor,
   onAddQuestion,
-}: EditorBubbleMenuProps) {
+  onAddImportant, // <--- RECEIVE IT
+  onAddVocabulary, // <--- RECEIVE IT
+  ...props
+}: EditorBubbleMenuProps) => {
   if (!editor) return null;
 
   return (
-    <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
-      <div className="bg-stone-900 text-stone-50 px-2 py-1 rounded shadow-xl flex items-center gap-1 animate-in fade-in zoom-in-95 duration-200">
-        {/* The "Ask Question" Button */}
-        <button
-          onClick={onAddQuestion}
-          className="flex items-center gap-1.5 px-2 py-1 hover:bg-stone-700 rounded transition-colors text-xs font-medium"
-        >
-          <HelpCircle size={14} className="text-red-400" />
-          <span>Ask</span>
-        </button>
+    <BubbleMenu
+      editor={editor}
+      tippyOptions={{ duration: 100 }}
+      className="flex items-center gap-1 bg-stone-900 text-stone-50 px-2 py-1 rounded-md shadow-xl border border-stone-700"
+      {...props}
+    >
+      {/* --- 1. ASK BUTTON --- */}
+      <button
+        onClick={onAddQuestion}
+        className="flex items-center gap-1 px-2 py-1 hover:bg-stone-700 rounded transition-colors text-xs font-medium"
+      >
+        <span className="font-serif italic">?</span>
+        <span>Ask</span>
+      </button>
 
-        {/* Divider */}
-        <div className="w-px h-3 bg-stone-700 mx-1"></div>
+      {/* DIVIDER */}
+      <div className="w-px h-4 bg-stone-700 mx-1" />
 
-        {/* Standard Formatting Tools */}
-        <button
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-1 hover:bg-stone-700 rounded ${
-            editor.isActive("bold") ? "text-blue-400" : ""
-          }`}
-        >
-          <Bold size={14} />
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-1 hover:bg-stone-700 rounded ${
-            editor.isActive("italic") ? "text-blue-400" : ""
-          }`}
-        >
-          <Italic size={14} />
-        </button>
-      </div>
+      {/* --- 2. IMPORTANT BUTTON (Amber) --- */}
+      <button
+        onClick={onAddImportant}
+        className="flex items-center gap-1 px-2 py-1 hover:bg-stone-700 hover:text-amber-400 rounded transition-colors text-xs font-medium"
+        title="Mark as Important"
+      >
+        <AlertCircle size={14} />
+      </button>
+
+      {/* --- 3. VOCABULARY BUTTON (Blue) --- */}
+      <button
+        onClick={onAddVocabulary}
+        className="flex items-center gap-1 px-2 py-1 hover:bg-stone-700 hover:text-blue-400 rounded transition-colors text-xs font-medium"
+        title="Add to Vocabulary"
+      >
+        <Book size={14} />
+      </button>
+
+      {/* DIVIDER */}
+      <div className="w-px h-4 bg-stone-700 mx-1" />
+
+      {/* --- 4. FORMATTING BUTTONS (Existing) --- */}
+      <button
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        className={`p-1 hover:bg-stone-700 rounded transition-colors ${
+          editor.isActive("bold") ? "text-white" : "text-stone-400"
+        }`}
+      >
+        <Bold size={14} />
+      </button>
+
+      <button
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        className={`p-1 hover:bg-stone-700 rounded transition-colors ${
+          editor.isActive("italic") ? "text-white" : "text-stone-400"
+        }`}
+      >
+        <Italic size={14} />
+      </button>
+
+      <button
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        className={`p-1 hover:bg-stone-700 rounded transition-colors ${
+          editor.isActive("underline") ? "text-white" : "text-stone-400"
+        }`}
+      >
+        <Underline size={14} />
+      </button>
+
+      <button
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        className={`p-1 hover:bg-stone-700 rounded transition-colors ${
+          editor.isActive("strike") ? "text-white" : "text-stone-400"
+        }`}
+      >
+        <Strikethrough size={14} />
+      </button>
+
+      <button
+        onClick={() => editor.chain().focus().toggleCode().run()}
+        className={`p-1 hover:bg-stone-700 rounded transition-colors ${
+          editor.isActive("code") ? "text-white" : "text-stone-400"
+        }`}
+      >
+        <Code size={14} />
+      </button>
     </BubbleMenu>
   );
-}
+};

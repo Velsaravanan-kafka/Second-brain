@@ -55,7 +55,11 @@
     --foreground: #ededed;
   }
 }
-
+span[data-question-id],
+span[data-important-id],
+span[data-vocab-id] {
+  cursor: pointer !important;
+}
 body {
   background: var(--background);
   color: var(--foreground);
