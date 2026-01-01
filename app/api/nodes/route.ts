@@ -1,80 +1,87 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  try {
-    const nodes = await prisma.node.findMany({
-      orderBy: { createdAt: "asc" },
-    });
-    return NextResponse.json(nodes);
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch nodes" },
-      { status: 500 }
-    );
+  // 1. Check who is logged in
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // 2. Only fetch notes belonging to THIS user
+  const nodes = await prisma.node.findMany({
+    where: { userId: userId }, // <--- 🔒 THIS IS THE SEPARATION
+    orderBy: { createdAt: "asc" },
+  });
+
+  return NextResponse.json(nodes);
 }
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { title, parentId, icon } = body;
+export async function POST(request: Request) {
+  const { userId } = await auth(); // <--- Check login
 
-    const newNode = await prisma.node.create({
-      data: {
-        title: title || "Untitled Note",
-        parentId: parentId || null,
-        icon: icon || null,
-        content: "",
-      },
-    });
-
-    return NextResponse.json(newNode);
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create node" },
-      { status: 500 }
-    );
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const body = await request.json();
+  const { title, parentId, icon } = body;
+
+  const node = await prisma.node.create({
+    data: {
+      title,
+      parentId: parentId || null,
+      icon: icon || null,
+      userId: userId, // <--- 🔒 STAMP THE OWNER
+    },
+  });
+
+  return NextResponse.json(node);
 }
 
-// 3. PATCH: Update a node's title or content
-export async function PATCH(req: Request) {
-  try {
-    const body = await req.json();
-    const { id, title, content } = body;
+export async function DELETE(request: Request) {
+  const { userId } = await auth();
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const updatedNode = await prisma.node.update({
-      where: { id },
-      data: {
-        title: title, // Updates title if provided
-        content: content, // Updates content if provided
-      },
-    });
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
 
-    return NextResponse.json(updatedNode);
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to update" }, { status: 500 });
-  }
+  if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+
+  // 🔒 Secure Delete: Ensure the node belongs to the user requesting deletion
+  await prisma.node.deleteMany({
+    where: {
+      id: id,
+      userId: userId, // <--- SECURITY CHECK
+    },
+  });
+
+  return NextResponse.json({ success: true });
 }
 
-// 4. DELETE: Remove a node and its children
-export async function DELETE(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+export async function PATCH(request: Request) {
+  const { userId } = await auth();
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!id)
-      return NextResponse.json({ error: "ID required" }, { status: 400 });
+  const { id, title, content } = await request.json();
 
-    // Note: If you set up "Cascade Delete" in Prisma, this deletes children automatically.
-    // If not, we manually delete the node.
-    await prisma.node.delete({
-      where: { id },
-    });
+  // 🔒 Secure Update
+  const updated = await prisma.node.updateMany({
+    where: {
+      id: id,
+      userId: userId, // <--- SECURITY CHECK
+    },
+    data: {
+      title: title,
+      content: content,
+    },
+  });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
-  }
+  return NextResponse.json(updated);
 }
