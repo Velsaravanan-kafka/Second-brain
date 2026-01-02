@@ -1,23 +1,25 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// 1. Define protected routes
-const isProtectedRoute = createRouteMatcher([
-  "/", // The dashboard
-  "/api(.*)", // All API routes
-]);
+// 1. Define routes that REQUIRE login
+const isProtectedRoute = createRouteMatcher(["/", "/api(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // 2. Check if route is protected AND user is NOT logged in
-  if (isProtectedRoute(req)) {
-    const { userId } = await auth(); // Get the ID
-    if (!userId) {
-      // If no ID, redirect to login
-      const authObject = await auth();
-      return authObject.redirectToSignIn();
-    }
+  // 2. If the route is NOT protected, just let them pass
+  if (!isProtectedRoute(req)) return;
+
+  // 3. Explicitly resolve the auth promise (Fixes the squiggles!)
+  const authObject = await auth();
+
+  // 4. Manual check: If no user, redirect them
+  if (!authObject.userId) {
+    return authObject.redirectToSignIn();
   }
 });
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  // 5. Official Clerk matcher (Safety for static files)
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
 };
