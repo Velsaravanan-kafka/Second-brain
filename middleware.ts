@@ -1,23 +1,35 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// 1. Define routes that REQUIRE login
-const isProtectedRoute = createRouteMatcher(["/", "/api(.*)"]);
+// 1. SECURITY: We want to protect the ENTIRE application
+// The pattern "/(.*)" means "Match absolutely every URL"
+const isProtectedRoute = createRouteMatcher(["/(.*)"]);
+
+// 2. SAFETY VALVE: We must explicitly ignore Clerk's login routes
+// This prevents the "Infinite Loop" / "500 Error"
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/api/webhooks(.*)",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // 2. If the route is NOT protected, just let them pass
-  if (!isProtectedRoute(req)) return;
+  // A. Check for Public Routes FIRST
+  // If the user is trying to sign in, let them pass immediately.
+  if (isPublicRoute(req)) return;
 
-  // 3. Explicitly resolve the auth promise (Fixes the squiggles!)
-  const authObject = await auth();
-
-  // 4. Manual check: If no user, redirect them
-  if (!authObject.userId) {
-    return authObject.redirectToSignIn();
+  // B. If it's NOT public, and matches our "Protect Everything" rule...
+  if (isProtectedRoute(req)) {
+    // ...force them to sign in.
+    const authObject = await auth();
+    if (!authObject.userId) {
+      return authObject.redirectToSignIn();
+    }
   }
 });
 
 export const config = {
-  // 5. Official Clerk matcher (Safety for static files)
+  // 3. PERFORMANCE: This official matcher tells Next.js to strictly ignore
+  // static files (images, css, logos) so the middleware doesn't slow them down.
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
