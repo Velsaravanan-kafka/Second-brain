@@ -1,5 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
+export const runtime = "nodejs";
+
 // 1. SECURITY: We want to protect the ENTIRE application
 // The pattern "/(.*)" means "Match absolutely every URL"
 const isProtectedRoute = createRouteMatcher(["/(.*)"]);
